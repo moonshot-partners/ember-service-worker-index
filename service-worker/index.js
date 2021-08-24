@@ -43,6 +43,8 @@ self.addEventListener('fetch', (event) => {
   if (!isTests && isGETRequest && isHTMLRequest && isLocal && scopeIncluded && !scopeExcluded) {
     if (STRATEGY === 'fallback') {
       cacheFallbackFetch(event, TIMEOUT);
+    } else if (STRATEGY === 'wait-for-network') {
+      cacheWaitForNetwork(event);
     }
     else {
       return cacheFirstFetch(event);
@@ -101,7 +103,16 @@ function cacheFallbackFetch(event, fetchTimeout) {
       Rejection already happened with setTimeout
     */
     if(didTimeOut) {
-      return cacheFirstFetch(event);
+      return cacheFirstFetch();
     }
   });
+}
+
+function cacheWaitForNetwork(event) {
+  event.respondWith(
+    fetch(INDEX_HTML_URL, { credentials: 'include' })
+      .catch(function() {
+        return caches.match(INDEX_HTML_URL, { cacheName: CACHE_NAME });
+      })
+  );
 }
